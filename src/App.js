@@ -15,7 +15,7 @@ function App() {
   const [location, setLocation] = useState('');
   const [weatherInfo, setWeatherInfo] = useState([]);
 
-  const [initialWeatherInfo, setInitialWeatherInfo] = useState({});
+  const [initialWeatherInfo, setInitialWeatherInfo] = useState([]);
   const [cityName, setCityName] = useState([]);
 
 
@@ -36,6 +36,7 @@ function App() {
     );
     // const dailyData = response.data.list.filter(reading => reading.dt_txt.includes("18:00:00"))
     const dailyData = dailyDataFilter(response.data.list)
+
     setWeatherInfo(dailyData);
   };
 
@@ -54,7 +55,6 @@ function App() {
       },
     );
     // const dailyData = response.data.list.filter(reading => reading.dt_txt.includes("18:00:00"))
-    console.log(response.data)
     setInitialWeatherInfo(response.data)
   };
 
@@ -87,7 +87,13 @@ function App() {
 
   //Limitar quantidade de dias
   const dailyDataFilter = (weatherList) => {
-     return weatherList.filter(reading => reading.dt_txt.includes("18:00:00"))
+    if(weatherList) {
+      const filtered = weatherList.filter(reading => reading.dt_txt.includes("18:00:00"))
+      return filtered.splice(1,3)
+    }else{
+      return [];
+    }
+
   }
 
   /* Pegar localização inicial */
@@ -109,8 +115,6 @@ function App() {
 
   //Controi card dos dias
   const formatDayCards = () => {
-    debugger
-    console.log(weatherInfo)
     return weatherInfo.map((day, index) => <DayCard day={day} key={index} />)
   }
 
@@ -120,11 +124,12 @@ function App() {
   }
 
 
+
   return (
     <main >
       <div>
 
-      { typeof cityName.main || initialWeatherInfo.main !== 'undefined' ? (
+      { typeof cityName.main || initialWeatherInfo.main || weatherInfo.main !== 'undefined' ? (
     <>
       <div className="box-search">
         <input
@@ -142,9 +147,9 @@ function App() {
           <div className="location">
             {initialWeatherInfo.name}
             {cityName.name}
+
           </div>
         </div>
-
         {formatDayCards()}
         </>
       ) : ('')}
