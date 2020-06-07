@@ -2,51 +2,45 @@
 /* eslint-disable react/jsx-indent */
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import DayCard from './Card'
 
 const api = {
   key: '9eba34f80c51addca93627714a5e6e94',
   base: 'https://api.openweathermap.org/data/2.5/',
 };
 
-const dateConstructor = (data) => {
-  const mounths = [
-    'Janeiro',
-    'Favereiro',
-    'Março',
-    'Abril',
-    'Maio',
-    'Junho',
-    'Julio',
-    'Agosto',
-    'Setembro',
-    'Outubro',
-    'Novembro',
-    'Dezembro',
-  ];
-  const days = [
-    'Segunda-Feira',
-    'Terça-Feira',
-    'Quarta-Feira',
-    'Quinta-Feira',
-    'Sexta-Feira',
-    'Sábado',
-    'Domingo',
-  ];
-
-  const day = days[data.getDay()];
-  const date = data.getDate();
-  const month = mounths[data.getMonth()];
-  const year = data.getFullYear();
-
-  return `${day} ${date} ${month} ${year}`;
-};
 
 function App() {
   const [browseLocation, setBrowseLocation] = useState(false);
   const [location, setLocation] = useState('');
-  const [weatherInfo, setWeatherInfo] = useState({});
+  const [weatherInfo, setWeatherInfo] = useState([]);
+
+  const [initialWeatherInfo, setInitialWeatherInfo] = useState({});
+  const [cityName, setCityName] = useState([]);
+
+
+
+  const geWeatherInitialLocationForecast = async (latitude, longitude) => {
+
+    const response = await axios.get(
+      'http://api.openweathermap.org/data/2.5/forecast',
+      {
+        params: {
+          lat: latitude,
+          lon: longitude,
+          appid: api.key,
+          lang: 'pt',
+          units: 'metric',
+        },
+      },
+    );
+    // const dailyData = response.data.list.filter(reading => reading.dt_txt.includes("18:00:00"))
+    const dailyData = dailyDataFilter(response.data.list)
+    setWeatherInfo(dailyData);
+  };
 
   const geWeatherInitialLocation = async (latitude, longitude) => {
+
     const response = await axios.get(
       'http://api.openweathermap.org/data/2.5/weather',
       {
@@ -59,7 +53,9 @@ function App() {
         },
       },
     );
-    setWeatherInfo(response.data);
+    // const dailyData = response.data.list.filter(reading => reading.dt_txt.includes("18:00:00"))
+    console.log(response.data)
+    setInitialWeatherInfo(response.data)
   };
 
   const searchLocation = (event) => {
@@ -69,12 +65,30 @@ function App() {
       )
         .then((response) => response.json())
         .then((result) => {
-          setWeatherInfo(result);
+          const dailyData = dailyDataFilter(result.list)
+          setWeatherInfo(dailyData);
           setLocation('');
-          console.log(result);
+          setInitialWeatherInfo('')
+        });
+    }
+
+    if (event.key === 'Enter') {
+      fetch(
+        `${api.base}weather?q=${location}&units=metric&APPID=${api.key}&lang=pt`,
+      )
+        .then((response) => response.json())
+        .then((result) => {
+          setCityName(result);
+          setLocation('');
+          setInitialWeatherInfo('')
         });
     }
   };
+
+  //Limitar quantidade de dias
+  const dailyDataFilter = (weatherList) => {
+     return weatherList.filter(reading => reading.dt_txt.includes("18:00:00"))
+  }
 
   /* Pegar localização inicial */
   useEffect(() => {
@@ -83,68 +97,59 @@ function App() {
         position.coords.latitude,
         position.coords.longitude,
       );
+
+      geWeatherInitialLocationForecast(
+        position.coords.latitude,
+        position.coords.longitude,
+      );
       setBrowseLocation(true);
     });
   }, []);
 
-  if (browseLocation === false) {
-    return <>Please allow browse location!</>;
+
+  //Controi card dos dias
+  const formatDayCards = () => {
+    debugger
+    console.log(weatherInfo)
+    return weatherInfo.map((day, index) => <DayCard day={day} key={index} />)
   }
+
+
+  if (browseLocation === false) {
+    return <h1>Please allow browse location!></h1>
+  }
+
+
   return (
-    <div
-      className={
-        // eslint-disable-next-line no-nested-ternary
-        typeof weatherInfo.main !== 'undefined'
-          ? weatherInfo.main.temp > 16
-            ? 'app warm'
-            : 'app'
-          : 'app'
-      }
-    >
-      <main>
-        {/* Pesquisa cidade */}
-        <div className="box-search">
-          <input
-            type="text"
-            className="search-bar"
-            placeholder="How’s the weather in..."
-            onChange={(event) => setLocation(event.target.value)}
-            value={location}
-            onKeyPress={searchLocation}
-          />
+    <main >
+      <div>
+
+      { typeof cityName.main || initialWeatherInfo.main !== 'undefined' ? (
+    <>
+      <div className="box-search">
+        <input
+          type="text"
+          className="search-bar"
+          placeholder="Digite o nome da cidade"
+          onChange={(event) => setLocation(event.target.value)}
+          value={location}
+          onKeyPress={searchLocation}
+        />
+      </div>
+
+      {/* Localizaçao */}
+      <div className="location-box">
+          <div className="location">
+            {initialWeatherInfo.name}
+            {cityName.name}
+          </div>
         </div>
 
-        {typeof weatherInfo.main !== 'undefined' ? (
-          <>
-            {/* Localizaçao */}
-            <div className="location-box">
-              <div className="location">
-                {weatherInfo.name}, {weatherInfo.sys.country}
-              </div>
-              <div className="dateWeather">{dateConstructor(new Date())}</div>
-            </div>
-
-            {/* Informação do tempo */}
-            <div className="WeatherDesc-box">
-              <div className="temperature">
-                {Math.round(weatherInfo.main.temp)}
-                °C
-              </div>
-              <div className="weather">
-                {weatherInfo.weather.description}
-                <ul>
-                  <li>Vento: {weatherInfo.wind.speed} km/h</li>
-                  <li>Pressão: {weatherInfo.main.temp} hpa</li>
-                  <li>Umidade: {weatherInfo.main.humidity}%</li>
-                </ul>
-              </div>
-            </div>
-          </>
-        ) : (
-          ''
-        )}
-      </main>
-    </div>
+        {formatDayCards()}
+        </>
+      ) : ('')}
+      </div>
+    </main>
   );
 }
 
