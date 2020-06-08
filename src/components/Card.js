@@ -48,7 +48,6 @@ export default function Card({day}){
         {/* Informações do tempo */}
         <div className="WeatherDesc-box">
           <div lassName="location">
-            <i className={imgURL}></i>
             <h2 className="temperature">{Math.round(day.main.temp)} °C</h2>
             <div  className="weather">{day.weather[0].description}
             <div className="dateWeather">{dateConstructor(newDate)}</div>
@@ -64,6 +63,7 @@ export default function Card({day}){
           </div>
         </div>
 
+            <i className={imgURL}></i>
       </>
     )
 }
